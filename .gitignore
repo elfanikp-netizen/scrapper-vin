@@ -1,5 +1,11 @@
 .browser-profile/
 .chrome_profile/
+.venv/
 __pycache__/
+.pytest_cache/
 *.py[cod]
+.env
+.env.*
+!.env.example
 *_results.xlsx
+*_vin.xlsx
