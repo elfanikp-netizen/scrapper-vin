@@ -1,0 +1,14 @@
+2026/10/25-11:08:35.498 404 Reusing MANIFEST C:\ELFANI\scrapper-vins\.chrome_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/25-11:08:35.500 404 Recovering log #459
+2026/10/25-11:08:35.500 404 Level-0 table #462: started
+2026/10/25-11:08:35.507 404 Level-0 table #462: 61574 bytes OK
+2026/10/25-11:08:35.512 404 Delete type=0 #459
+2026/10/25-11:08:35.512 ad8 Compacting 4@0 + 1@1 files
+2026/10/25-11:08:35.557 ad8 Generated table #464@0: 15 keys, 1611 bytes
+2026/10/25-11:08:35.557 ad8 Compacted 4@0 + 1@1 files => 1611 bytes
+2026/10/25-11:08:35.558 ad8 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/10/25-11:08:35.560 ad8 Delete type=2 #454
+2026/10/25-11:08:35.560 ad8 Delete type=2 #456
+2026/10/25-11:08:35.560 ad8 Delete type=2 #458
+2026/10/25-11:08:35.560 ad8 Delete type=2 #460
+2026/10/25-11:08:35.560 ad8 Delete type=2 #462

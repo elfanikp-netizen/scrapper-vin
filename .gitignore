@@ -1,0 +1,5 @@
+.browser-profile/
+.chrome_profile/
+__pycache__/
+*.py[cod]
+*_results.xlsx
