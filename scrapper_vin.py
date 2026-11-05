@@ -195,7 +195,7 @@ def load_previous_results(path: Path) -> dict[tuple[str, str, str], list[tuple[s
             return {}
         previous: dict[tuple[str, str, str], list[tuple[str, str]]] = {}
         for row in sheet.iter_rows(min_row=2, values_only=True):
-            vehicle = tuple(str(row[required[name]] or "").strip().casefold() for name in ("year", "make", "model"))
+            vehicle = vehicle_key(tuple(row[required[name]] for name in ("year", "make", "model")))
             if not all(vehicle):
                 continue
             result = (str(row[required["vin"]] or "").strip(), str(row[required["status"]] or "").strip())
@@ -207,6 +207,17 @@ def load_previous_results(path: Path) -> dict[tuple[str, str, str], list[tuple[s
 
 def is_completed_result(vin: str, status: str) -> bool:
     return (status == "success" and bool(vin)) or status == "vin_not_found"
+
+
+def vehicle_key(vehicle: tuple[object, object, object]) -> tuple[str, str, str]:
+    return tuple(str(value).strip().casefold() for value in vehicle)
+
+
+def group_vehicle_indices(vehicles, indices):
+    groups = {}
+    for index in indices:
+        groups.setdefault(vehicle_key(vehicles[index]), []).append(index)
+    return groups
 
 
 def save_results(path: Path, rows: list[tuple[object, object, object, str, str]]) -> None:
@@ -283,7 +294,7 @@ def main() -> int:
     results: list[tuple[object, object, object, str, str]] = []
     pending_indices = []
     for index, vehicle in enumerate(vehicles):
-        key = tuple(str(value).strip().casefold() for value in vehicle)
+        key = vehicle_key(vehicle)
         existing = previous.get(key, [])
         old_vin, old_status = existing.pop(0) if existing else ("", "")
         if is_completed_result(old_vin, old_status):
@@ -293,7 +304,8 @@ def main() -> int:
             pending_indices.append(index)
 
             save_results(output_path, results)
-    if not pending_indices:
+    pending_groups = group_vehicle_indices(vehicles, pending_indices)
+    if not pending_groups:
         print(f"All {len(results)} vehicle rows already have VINs in {output_path}.")
         return 0
     chrome_path = find_chrome(args.chrome_path)
@@ -301,7 +313,7 @@ def main() -> int:
         print("Google Chrome was not found. Install Chrome or pass --chrome-path.", file=sys.stderr)
         return 2
 
-    print(f"Loaded {len(vehicles)} vehicle row(s); {len(pending_indices)} to crawl.")
+    print(f"Loaded {len(vehicles)} vehicle row(s); {len(pending_groups)} distinct vehicle(s) to crawl.")
     profile_path = Path(__file__).resolve().parent / ".browser-profile"
     chrome_process = None
     browser = None
@@ -312,24 +324,29 @@ def main() -> int:
             context = browser.contexts[0] if browser.contexts else browser.new_context()
             page = context.pages[0] if context.pages else context.new_page()
             page.set_default_timeout(30_000)
-            for count, index in enumerate(pending_indices, start=1):
+            for count, indices in enumerate(pending_groups.values(), start=1):
+                index = indices[0]
                 year, make, model = vehicles[index]
-                print(f"[{count}/{len(pending_indices)}] {year} {make} {model}", flush=True)
+                print(f"[{count}/{len(pending_groups)}] {year} {make} {model}", flush=True)
                 try:
                     vin, status = crawl_vehicle(page, year, make, model)
                     print(f"  {vin if vin else status}", flush=True)
                 except Exception as error:
                     vin = ""
                     if isinstance(error, BrowserClosedError) or page.is_closed():
-                        results[index] = (year, make, model, vin, "stopped: browser closed")
+                        for row_index in indices:
+                            row_year, row_make, row_model = vehicles[row_index]
+                            results[row_index] = (row_year, row_make, row_model, vin, "stopped: browser closed")
                         save_results(output_path, results)
                         print("Browser closed; stopping now. Saved progress can be resumed.", flush=True)
                         break
                     status = f"error: {type(error).__name__}: {error}"
                     print(f"  {status}", flush=True)
-                results[index] = (year, make, model, vin, status)
+                for row_index in indices:
+                    row_year, row_make, row_model = vehicles[row_index]
+                    results[row_index] = (row_year, row_make, row_model, vin, status)
                 save_results(output_path, results)
-                if count < len(pending_indices):
+                if count < len(pending_groups):
                     time.sleep(1)
         finally:
             if browser is not None:

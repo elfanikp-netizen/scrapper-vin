@@ -9,6 +9,7 @@ from scrapper_vin import (
     BrowserClosedError,
     build_vehicle_url,
     extract_vins,
+    group_vehicle_indices,
     is_completed_result,
     page_needs_verification,
     read_vehicles,
@@ -48,6 +49,17 @@ class VinCrawlerTests(unittest.TestCase):
             workbook.save(path)
             workbook.close()
             self.assertEqual(read_vehicles(path, None, 1), [(2006, "ACURA", "MDX")])
+
+    def test_identical_vehicle_rows_share_lookup_group_but_keep_row_occurrences(self):
+        vehicles = [
+            (2006, "ACURA", "MDX"),
+            ("2006", "acura", "mdx"),
+            (2007, "ACURA", "MDX"),
+        ]
+
+        groups = group_vehicle_indices(vehicles, [0, 1, 2])
+
+        self.assertEqual(list(groups.values()), [[0, 1], [2]])
 
     def test_stops_manual_verification_wait_when_browser_closes(self):
         page = Mock()
